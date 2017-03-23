@@ -54,76 +54,73 @@ void taglib_get_artist(TagLib::FileRef* file, Database::AbstractItem& item)
     //set_value(audio->artist, sizeof(audio->artist), sTmp.to8Bit(true).c_str());
 }
 
-void taglib_get_album(plugin_info* plugin, metadata_t* audio)
+void taglib_get_album(TagLib::FileRef* file, Database::AbstractItem& item)
 {
-    TagLib::String sTmp = ((TagLib::FileRef*)plugin->user_data)->tag()->album();
-    set_value(audio->album, sizeof(audio->album), sTmp.to8Bit(true).c_str());
+    TagLib::String sTmp = file->tag()->album();
+    item.details->av_album = sTmp.to8Bit(true);
 }
 
-void taglib_get_genre(plugin_info* plugin, metadata_t* audio)
+void taglib_get_genre(TagLib::FileRef* file, Database::AbstractItem& item)
 {
-    TagLib::String sTmp = ((TagLib::FileRef*)plugin->user_data)->tag()->genre();
-    set_value(audio->genre, sizeof(audio->genre), sTmp.to8Bit(true).c_str());
+    TagLib::String sTmp = file->tag()->genre();
+    item.details->av_genre = sTmp.to8Bit(true);
 }
 
-void taglib_get_comment(plugin_info* plugin, metadata_t* audio)
+/*void taglib_get_comment(plugin_info* plugin, metadata_t* audio)
 {
     TagLib::String sTmp = ((TagLib::FileRef*)plugin->user_data)->tag()->comment();
     set_value(audio->description, sizeof(audio->description), sTmp.to8Bit(true).c_str());
-}
+    }*/
 
-void taglib_get_composer(plugin_info* plugin, metadata_t* audio)
+void taglib_get_composer(TagLib::FileRef* file, Database::AbstractItem& item)
 {
-    TagLib::MPEG::File* mpegFile = new TagLib::MPEG::File(((TagLib::FileRef*)plugin->user_data)->file()->name());
-    if (mpegFile->isValid() == false || mpegFile->ID3v2Tag() == NULL) {
-        delete mpegFile;
+    TagLib::MPEG::File mpegFile(file->file()->name());
+    if (mpegFile.isValid() == false || mpegFile.ID3v2Tag() == NULL) {
         return;
     }
 
-    TagLib::ID3v2::Tag *tag = mpegFile->ID3v2Tag();
-    const TagLib::ID3v2::FrameList frameList = tag->frameList("TCOM");
+    TagLib::ID3v2::Tag *tag = mpegFile.ID3v2Tag();
+    const TagLib::ID3v2::FrameList frameList = tag->frameListMap()["TCOM"];
     if (frameList.isEmpty()) {
-        delete mpegFile;
         return;
     }
 
-    set_value(audio->composer, sizeof(audio->composer), frameList.front()->toString().to8Bit(true).c_str());
-    delete mpegFile;
+    item.details->a_composer = frameList.front()->toString().to8Bit(true);
 }
 
-void taglib_get_duration(plugin_info* info, metadata_t* metadata)
+/*void taglib_get_duration(plugin_info* info, metadata_t* metadata)
 {
     TagLib::String sTmp;
 
     long length = ((TagLib::FileRef*)info->user_data)->audioProperties()->length();
     metadata->duration_ms = length * 1000;
-}
+    }*/
 
-void taglib_get_channels(plugin_info* info, metadata_t* metadata)
+/*void taglib_get_channels(plugin_info* info, metadata_t* metadata)
 {
     metadata->nr_audio_channels = ((TagLib::FileRef*)info->user_data)->audioProperties()->channels();
-}
+    }*/
 
-void taglib_get_track_no(plugin_info* info, metadata_t* metadata)
+void taglib_get_track_no(TagLib::FileRef* file, Database::AbstractItem& item)
 {
-    metadata->track_number = ((TagLib::FileRef*)info->user_data)->tag()->track();
+    item.details->a_trackNumber = file->tag()->track();
 }
 
-void taglib_get_year(plugin_info* info, metadata_t* metadata)
+/*void taglib_get_year(plugin_info* info, metadata_t* metadata)
 {
     metadata->year = ((TagLib::FileRef*)info->user_data)->tag()->year();
-}
+    }*/
 
-void taglib_get_bitrate(plugin_info* info, metadata_t* metadata)
+/*void taglib_get_bitrate(plugin_info* info, metadata_t* metadata)
 {
     metadata->audio_bitrate = ((TagLib::FileRef*)info->user_data)->audioProperties()->bitrate();
     metadata->audio_bitrate *= 1024;
-}
+    }*/
 
-void taglib_get_samplerate(plugin_info* info, metadata_t* metadata)
+/*void taglib_get_samplerate(plugin_info* info, metadata_t* metadata)
 {
     metadata->audio_sample_frequency = ((TagLib::FileRef*)info->user_data)->audioProperties()->sampleRate();
-}
+    }*/
 
 void taglib_check_image(TagLib::FileRef* file, Database::AbstractItem& item)
 {
@@ -206,6 +203,10 @@ extern "C" int fuppes_read_metadata(Database::AbstractItem& item, void** data)
 
     taglib_get_title(file, item);
     taglib_get_artist(file, item);
+    taglib_get_album(file, item);
+    taglib_get_genre(file, item);
+    taglib_get_track_no(file, item);
+    taglib_get_composer(file, item);
 
     /*
      taglib_get_artist(plugin, metadata);
